@@ -1,0 +1,17 @@
+---
+# Master playbook — runs the full GitLab lab setup in order
+# Usage: ansible-playbook site.yml -e "gitlab_runner_token=YOURTOKEN"
+#
+# Steps:
+#   1. bootstrap_ssh  — deploy SSH key to all hosts (password auth required first time)
+#   2. install_gitlab — install GitLab CE on the gitlab host
+#   3. install_runners— install and register GitLab Runners
+
+- name: Deploy SSH keys to all hosts
+  ansible.builtin.import_playbook: playbooks/bootstrap_ssh.yml
+
+- name: Install GitLab
+  ansible.builtin.import_playbook: playbooks/install_gitlab.yml
+
+- name: Install and register GitLab Runners
+  ansible.builtin.import_playbook: playbooks/install_runners.yml

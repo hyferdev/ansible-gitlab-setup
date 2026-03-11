@@ -1,0 +1,40 @@
+---
+# Bootstrap: Deploy SSH key to all hosts using password auth
+# Run with: ansible-playbook playbooks/bootstrap_ssh.yml --ask-pass
+#
+# This is a one-time bootstrap step. After this runs, Ansible will
+# use key auth for all subsequent playbooks.
+
+- name: Bootstrap SSH key authentication
+  hosts: all
+  gather_facts: false
+  # Override key auth for this bootstrap run — uses password
+  vars:
+    ansible_ssh_private_key_file: ""
+
+  tasks:
+    - name: Ensure .ssh directory exists for admin user
+      ansible.builtin.file:
+        path: "/home/{{ admin_user }}/.ssh"
+        state: directory
+        mode: "0700"
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+
+    - name: Deploy RedKey public key to authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{ admin_user }}"
+        state: present
+        key: "{{ lookup('file', ssh_public_key_file | expanduser) }}"
+
+    - name: Verify SSH key login works
+      ansible.builtin.ping:
+      vars:
+        ansible_ssh_private_key_file: "~/creds/RedKeys"
+        ansible_password: ""
+      register: ping_result
+
+    - name: Report key auth status
+      ansible.builtin.debug:
+        msg: "Key auth verified on {{ inventory_hostname }}"
+      when: ping_result is succeeded

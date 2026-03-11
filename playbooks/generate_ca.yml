@@ -1,0 +1,96 @@
+---
+# Generate a local CA and sign a cert for gitlab.local
+# Run with: ansible-playbook playbooks/generate_ca.yml
+# After running: import files/ssl/lab-ca.crt into your browser/OS trust store
+
+- name: Generate Lab CA and GitLab certificate
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ssl_dir: "{{ playbook_dir }}/../files/ssl"
+    ca_subj: "/CN=HyferTech Lab CA/O=HyferTech Lab"
+    cert_subj: "/CN=gitlab.local"
+    ca_days: 3650
+    cert_days: 825   # max browsers will trust
+
+  tasks:
+    - name: Ensure ssl output directory exists
+      ansible.builtin.file:
+        path: "{{ ssl_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Generate CA private key
+      ansible.builtin.command:
+        cmd: openssl genrsa -out "{{ ssl_dir }}/lab-ca.key" 4096
+        creates: "{{ ssl_dir }}/lab-ca.key"
+
+    - name: Generate CA certificate
+      ansible.builtin.command:
+        cmd: >
+          openssl req -new -x509
+          -days {{ ca_days }}
+          -key "{{ ssl_dir }}/lab-ca.key"
+          -subj "{{ ca_subj }}"
+          -out "{{ ssl_dir }}/lab-ca.crt"
+        creates: "{{ ssl_dir }}/lab-ca.crt"
+
+    - name: Generate GitLab private key
+      ansible.builtin.command:
+        cmd: openssl genrsa -out "{{ ssl_dir }}/gitlab.local.key" 2048
+        creates: "{{ ssl_dir }}/gitlab.local.key"
+
+    - name: Generate GitLab CSR
+      ansible.builtin.command:
+        cmd: >
+          openssl req -new
+          -key "{{ ssl_dir }}/gitlab.local.key"
+          -subj "{{ cert_subj }}"
+          -out "{{ ssl_dir }}/gitlab.local.csr"
+        creates: "{{ ssl_dir }}/gitlab.local.csr"
+
+    - name: Write SAN extension file
+      ansible.builtin.copy:
+        dest: "{{ ssl_dir }}/gitlab.local.ext"
+        mode: "0600"
+        content: |
+          authorityKeyIdentifier=keyid,issuer
+          basicConstraints=CA:FALSE
+          keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = gitlab.local
+          DNS.2 = gitlab
+          IP.1 = 10.30.10.100
+
+    - name: Sign GitLab certificate with CA
+      ansible.builtin.command:
+        cmd: >
+          openssl x509 -req
+          -days {{ cert_days }}
+          -in "{{ ssl_dir }}/gitlab.local.csr"
+          -CA "{{ ssl_dir }}/lab-ca.crt"
+          -CAkey "{{ ssl_dir }}/lab-ca.key"
+          -CAcreateserial
+          -extfile "{{ ssl_dir }}/gitlab.local.ext"
+          -out "{{ ssl_dir }}/gitlab.local.crt"
+        creates: "{{ ssl_dir }}/gitlab.local.crt"
+
+    - name: Show next steps
+      ansible.builtin.debug:
+        msg: |
+          Certificates generated in files/ssl/
+
+          To trust in Windows:
+            1. Open certmgr.msc
+            2. Trusted Root Certification Authorities → Certificates → Import
+            3. Import files/ssl/lab-ca.crt
+
+          To trust in Linux (Ubuntu/Debian):
+            sudo cp files/ssl/lab-ca.crt /usr/local/share/ca-certificates/lab-ca.crt
+            sudo update-ca-certificates
+
+          Then run: ansible-playbook playbooks/install_gitlab.yml

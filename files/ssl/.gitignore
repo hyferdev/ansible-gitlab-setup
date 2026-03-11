@@ -1,0 +1,6 @@
+# Never commit private keys
+*.key
+*.pem
+*.srl
+*.csr
+*.ext

@@ -1,0 +1,13 @@
+# Private keys and sensitive SSL files
+files/ssl/*.key
+files/ssl/*.pem
+files/ssl/*.srl
+files/ssl/*.csr
+files/ssl/*.ext
+
+# Ansible retry files
+*.retry
+
+# Vault password files
+.vault_pass
+vault_pass.txt

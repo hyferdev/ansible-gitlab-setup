@@ -1,0 +1,8 @@
+---
+# Common variables for all hosts
+
+# SSH public key to deploy to all hosts
+ssh_public_key_file: "~/creds/RedKeys.pub"
+
+# System user to manage
+admin_user: hyfer

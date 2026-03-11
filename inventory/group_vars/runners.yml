@@ -1,0 +1,11 @@
+---
+# GitLab Runner specific variables
+
+# GitLab instance URL runners will connect to
+gitlab_runner_coordinator_url: "https://gitlab.local"
+
+# Runner executor type
+gitlab_runner_executor: "shell"
+
+# Runner tags (comma separated)
+gitlab_runner_tags: "shell,linux"

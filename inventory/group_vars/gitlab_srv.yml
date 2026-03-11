@@ -1,0 +1,16 @@
+---
+# GitLab server specific variables
+
+# Set this to your DNS name or IP — update after DNS is confirmed
+gitlab_external_url: "https://gitlab.local"
+
+# GitLab edition: gitlab-ce (Community) or gitlab-ee (Enterprise)
+gitlab_edition: gitlab-ce
+
+# GitLab package version — leave as "latest" to always install newest
+gitlab_version: latest
+
+# SMTP config (optional — fill in if you want email notifications)
+# gitlab_smtp_enable: true
+# gitlab_smtp_address: "smtp.example.com"
+# gitlab_smtp_port: 587

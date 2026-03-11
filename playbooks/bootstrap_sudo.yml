@@ -1,0 +1,29 @@
+---
+# Bootstrap sudo on VMs that don't have it yet
+# Run with: ansible-playbook playbooks/bootstrap_sudo.yml --ask-become-pass
+# become_method: su  — uses root password since sudo isn't installed yet
+
+- name: Install sudo and configure sudoers
+  hosts: all
+  become: true
+  become_method: su
+
+  tasks:
+    - name: Install sudo
+      ansible.builtin.apt:
+        name: sudo
+        state: present
+        update_cache: true
+
+    - name: Add admin user to sudo group
+      ansible.builtin.user:
+        name: "{{ admin_user }}"
+        groups: sudo
+        append: true
+
+    - name: Grant admin user passwordless sudo via drop-in file
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ admin_user }}"
+        content: "{{ admin_user }} ALL=(ALL:ALL) NOPASSWD: ALL\n"
+        mode: "0440"
+        validate: '/usr/sbin/visudo -cf %s'

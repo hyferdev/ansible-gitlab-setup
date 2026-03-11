@@ -1,0 +1,17 @@
+---
+- name: Configure /etc/hosts on all VMs
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Add all lab hosts to /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ item.hostnames.split()[0] }}.*"
+        line: "{{ item.ip }} {{ item.hostnames }}"
+        state: present
+      loop:
+        - { ip: "10.30.10.5",   hostnames: "hyfer hyfer.local" }
+        - { ip: "10.30.10.100", hostnames: "gitlab gitlab.local" }
+        - { ip: "10.30.10.101", hostnames: "gitrunner1 gitrunner1.local" }
+        - { ip: "10.30.10.102", hostnames: "gitrunner2 gitrunner2.local" }
