@@ -15,3 +15,6 @@
 
 - name: Install and register GitLab Runners
   ansible.builtin.import_playbook: playbooks/install_runners.yml
+
+- name: Install runner tools (Trivy, Gitleaks, Terraform)
+  ansible.builtin.import_playbook: playbooks/install_runner_tools.yml

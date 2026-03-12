@@ -1,0 +1,104 @@
+---
+# Install security and IaC tools on GitLab Runners
+#
+# Installs: Trivy, Gitleaks, Terraform
+#
+# Run with: ansible-playbook playbooks/install_runner_tools.yml
+
+- name: Install runner tools
+  hosts: runners
+  become: true
+  gather_facts: true
+
+  tasks:
+
+    # --- Trivy ---
+    - name: Check if Trivy repo is already configured
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/trivy.list
+      register: trivy_repo
+
+    - name: Add Trivy apt repo key
+      ansible.builtin.get_url:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        dest: /etc/apt/trusted.gpg.d/trivy.asc
+        mode: "0644"
+      when: not trivy_repo.stat.exists
+
+    - name: Add Trivy apt repo
+      ansible.builtin.apt_repository:
+        repo: "deb https://aquasecurity.github.io/trivy-repo/deb generic main"
+        filename: trivy
+        state: present
+      when: not trivy_repo.stat.exists
+
+    - name: Install Trivy
+      ansible.builtin.apt:
+        name: trivy
+        state: present
+        update_cache: true
+
+    # --- Gitleaks ---
+    - name: Get latest Gitleaks release info
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/gitleaks/gitleaks/releases/latest
+        return_content: true
+      register: gitleaks_release
+
+    - name: Download Gitleaks binary
+      ansible.builtin.get_url:
+        url: "{{ gitleaks_release.json.assets | selectattr('name', 'match', 'gitleaks_.*_linux_x64.tar.gz') | map(attribute='browser_download_url') | first }}"
+        dest: /tmp/gitleaks.tar.gz
+        mode: "0644"
+
+    - name: Extract Gitleaks to /usr/local/bin
+      ansible.builtin.unarchive:
+        src: /tmp/gitleaks.tar.gz
+        dest: /usr/local/bin
+        include:
+          - gitleaks
+        remote_src: true
+        mode: "0755"
+
+    # --- Terraform ---
+    - name: Check if HashiCorp repo is already configured
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/hashicorp.list
+      register: tf_repo
+
+    - name: Add HashiCorp apt repo key
+      ansible.builtin.get_url:
+        url: https://apt.releases.hashicorp.com/gpg
+        dest: /etc/apt/trusted.gpg.d/hashicorp.asc
+        mode: "0644"
+      when: not tf_repo.stat.exists
+
+    - name: Add HashiCorp apt repo
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/trusted.gpg.d/hashicorp.asc] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        filename: hashicorp
+        state: present
+      when: not tf_repo.stat.exists
+
+    - name: Install Terraform
+      ansible.builtin.apt:
+        name: terraform
+        state: present
+        update_cache: true
+
+    # --- Verify ---
+    - name: Verify tool versions
+      ansible.builtin.command: "{{ item }}"
+      loop:
+        - trivy --version
+        - gitleaks version
+        - terraform version
+      register: tool_versions
+      changed_when: false
+
+    - name: Show tool versions
+      ansible.builtin.debug:
+        msg: "{{ item.stdout_lines[0] }}"
+      loop: "{{ tool_versions.results }}"
+      loop_control:
+        label: "{{ item.item }}"
