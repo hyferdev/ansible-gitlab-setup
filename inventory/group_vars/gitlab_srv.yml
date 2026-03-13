@@ -5,7 +5,7 @@
 gitlab_external_url: "https://gitlab.local"
 
 # GitLab edition: gitlab-ce (Community) or gitlab-ee (Enterprise)
-gitlab_edition: gitlab-ce
+gitlab_edition: gitlab-ee
 
 # GitLab package version — leave as "latest" to always install newest
 gitlab_version: latest

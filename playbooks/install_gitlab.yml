@@ -27,7 +27,7 @@
 
     - name: Check if GitLab repo script already ran
       ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/gitlab_gitlab-ce.list
+        path: /etc/apt/sources.list.d/gitlab_{{ gitlab_edition }}.list
       register: gitlab_repo
 
     - name: Download GitLab repository setup script
